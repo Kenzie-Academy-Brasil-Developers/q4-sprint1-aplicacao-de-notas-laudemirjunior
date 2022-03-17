@@ -1,16 +1,16 @@
 import express from 'express';
-import { v4 as uuidv4 } from 'uuid';
+import { v4 } from 'uuid';
 
 const app = express();
-const PORT = 3000;
+const port = 3000;
 
 app.use(express.json());
 
 let users = [
   {
     id: 'fd218ada-ee7e-4b89-a3c2-2b65c53ef794',
-    name: 'laudemir',
-    cpf: '09772380919',
+    name: 'Laudemir',
+    cpf: '00000000000',
     notes: [
       {
         id: '122ad11a-74a8-4e55-ba72-05baae49d92e',
@@ -18,123 +18,103 @@ let users = [
         content: 'Organizar meu dia',
         created_at: '2022-03-15T23:32:35.376Z',
       },
-      {
-        id: '7276707c-d99d-40bf-bdd3-a9ce63e7eb01',
-        title: 'laudemir',
-        content: '09772380919',
-        created_at: '2022-03-15T23:34:43.147Z',
-      },
-      {
-        id: 'ce349aad-07df-4462-be26-59900ec3f763',
-        title: 'laudemir',
-        content: '09772380919',
-        created_at: '2022-03-15T23:35:45.863Z',
-      },
     ],
+  },
+  {
+    id: 'fd218ada-ee7e-4b89-a3c2-2b65c53ef794',
+    name: 'Luna',
+    cpf: '00000000001',
+    notes: [],
   },
 ];
 
-const verifyIdParams = (req, res, next) => {
+const verifyCpfExistsParams = (req, res, next) => {
   const { cpf } = req.params;
-  const user = users.filter((element) => cpf === element.cpf);
-  if (user.length === 0) {
-    return res.status(400).json({ error: 'user is not registered' });
+  const user = users.find((element) => cpf === element.cpf);
+  if (!user) {
+    return res.status(404).json({ error: 'User is not registered' });
   }
   return next();
 };
 
-const verifyIdBody = (req, res, next) => {
+const verifyCpfExistsBody = (req, res, next) => {
   const { cpf } = req.body;
-  const user = users.filter((element) => cpf === element.cpf);
-  if (user.length > 0) {
-    return res.status(422).json({ error: 'user already exists' });
+  const user = users.find((element) => cpf === element.cpf);
+  if (user) {
+    return res.status(422).json({ error: 'User already exists' });
   }
   return next();
 };
 
-const verifyIdNotes = (req, res, next) => {
+const verifyNoteExists = (req, res, next) => {
   const { cpf, id } = req.params;
-  const user = users.filter((element) => cpf === element.cpf);
-  const note = user.some((element) =>
-    element.notes.some((item) => item.id === id)
-  );
-  if (note === false) {
-    return res.status(404).json({ error: 'note is not registered' });
+  const user = users.find((element) => element.cpf === cpf);
+  const note = user.notes.find((element) => element.id === id);
+  console.log(note);
+  if (!note) {
+    return res.status(404).json({ error: 'Note is not registered' });
   }
   return next();
 };
 
-app.post('/users', verifyIdBody, (req, res) => {
+app.post('/users', verifyCpfExistsBody, (req, res) => {
   const { name, cpf } = req.body;
-  const id = uuidv4();
-  const newUser = { id, name, cpf, notes: [] };
+  const newUser = { id: v4(), name, cpf, notes: [] };
   users.push(newUser);
-  res.json(newUser);
+  res.status(201).json(newUser);
 });
 
 app.get('/users', (_, res) => {
-  res.status(201).json(users);
+  res.status(200).json(users);
 });
 
-app.patch('/users/:cpf', verifyIdParams, (req, res) => {
-  const paramsCpf = req.params;
+app.patch('/users/:cpf', verifyCpfExistsParams, (req, res) => {
+  const cpfParams = req.params.cpf;
   const { name, cpf } = req.body;
-  const oldUser = users.filter((element) => paramsCpf !== element.cpf);
-  oldUser[0].name = name;
-  oldUser[0].cpf = cpf;
-  const user = oldUser[0];
+  const user = users.find((element) => element.cpf === cpfParams);
+  user.name = name;
+  user.cpf = cpf;
   res.status(200).json({ message: 'User is updated', user });
 });
 
-app.delete('/users/:cpf', verifyIdParams, (req, res) => {
-  const paramsCpf = req.params;
-  const oldUser = users.filter((element) => paramsCpf === element.cpf);
-  users = oldUser;
-  res.json(204).json();
-});
-
-app.post('/users/:cpf/notes', verifyIdParams, (req, res) => {
-  const cpf = req.params;
-  const { title, content } = req.body;
-  const id = uuidv4();
-  // eslint-disable-next-line camelcase
-  const created_at = new Date();
-  const user = users.filter((element) => element.cpf !== cpf);
-  // eslint-disable-next-line camelcase
-  const newNote = { id, title, content, created_at };
-  user[0].notes.push(newNote);
-  res
-    .status(201)
-    .json({ message: `Dica was added into ${user[0].name} notes` });
-});
-
-app.get('/users/:cpf/notes', (req, res) => {
-  const cpf = req.params;
-  const notes = users.filter((element) => cpf !== element.cpf);
-  res.json(notes[0].notes);
-});
-
-app.patch('/users/:cpf/notes/:id', verifyIdNotes, (req, res) => {
-  const { cpf, id } = req.params;
-  const { title, content } = req.body;
-  const user = users.filter((element) => cpf === element.cpf);
-  const notes = user[0].notes.filter((element) => id === element.id);
-  // eslint-disable-next-line camelcase
-  notes[0].title = title;
-  notes[0].content = content;
-  // eslint-disable-next-line camelcase
-  notes[0].updated_at = new Date();
-  res.status(201).json(notes);
-});
-
-app.delete('/users/:cpf/notes/:id', verifyIdNotes, (req, res) => {
-  const { cpf, id } = req.params;
-  const user = users.filter((element) => cpf === element.cpf);
-  const notes = user[0].notes.filter((element) => id !== element.id);
-  user[0].notes = notes;
+app.delete('/users/:cpf', verifyCpfExistsParams, (req, res) => {
+  const { cpf } = req.params;
+  users = users.filter((element) => element.cpf !== cpf);
   res.status(204).json();
 });
 
-app.listen(PORT, () =>
-  console.log('Aplicação rodando em http://localhost:3000')
-);
+app.post('/users/:cpf/notes', verifyCpfExistsParams, (req, res) => {
+  const { cpf } = req.params;
+  const { title, content } = req.body;
+  const user = users.find((element) => element.cpf === cpf);
+  const note = { id: v4(), title, content, created_at: new Date() };
+  user.notes.push(note);
+  res.status(201).json({ message: `Tip was added into ${user.name} notes` });
+});
+
+app.get('/users/:cpf/notes', (req, res) => {
+  const { cpf } = req.params;
+  const user = users.find((element) => element.cpf === cpf);
+  res.json(user.notes);
+});
+
+app.patch('/users/:cpf/notes/:id', verifyNoteExists, (req, res) => {
+  const { cpf, id } = req.params;
+  const { title, content } = req.body;
+  const user = users.find((element) => element.cpf === cpf);
+  const notes = user.notes.find((element) => element.id === id);
+  notes.title = title;
+  notes.content = content;
+  notes.updated_at = new Date();
+  res.status(200).json(notes);
+});
+
+app.delete('/users/:cpf/notes/:id', verifyNoteExists, (req, res) => {
+  const { cpf, id } = req.params;
+  const user = users.filter((element) => element.cpf === cpf);
+  const notes = user.notes.filter((element) => element.id === id);
+  user.notes = notes;
+  res.status(204).json();
+});
+
+app.listen(port, () => console.log('Server is running on the port 3000'));
