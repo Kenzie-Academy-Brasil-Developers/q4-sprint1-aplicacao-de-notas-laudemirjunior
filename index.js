@@ -14,8 +14,14 @@ let users = [
     notes: [
       {
         id: '122ad11a-74a8-4e55-ba72-05baae49d92e',
-        title: 'Dica',
-        content: 'Organizar meu dia',
+        title: 'Dica 1',
+        content: 'Organizar meu dia 1',
+        created_at: '2022-03-15T23:32:35.376Z',
+      },
+      {
+        id: '122ad11a-74a8-4e55-ba72-05baae49d923',
+        title: 'Dica 2',
+        content: 'Organizar meu dia 2',
         created_at: '2022-03-15T23:32:35.376Z',
       },
     ],
@@ -50,7 +56,6 @@ const verifyNoteExists = (req, res, next) => {
   const { cpf, id } = req.params;
   const user = users.find((element) => element.cpf === cpf);
   const note = user.notes.find((element) => element.id === id);
-  console.log(note);
   if (!note) {
     return res.status(404).json({ error: 'Note is not registered' });
   }
@@ -111,8 +116,8 @@ app.patch('/users/:cpf/notes/:id', verifyNoteExists, (req, res) => {
 
 app.delete('/users/:cpf/notes/:id', verifyNoteExists, (req, res) => {
   const { cpf, id } = req.params;
-  const user = users.filter((element) => element.cpf === cpf);
-  const notes = user.notes.filter((element) => element.id === id);
+  const user = users.find((element) => element.cpf === cpf);
+  const notes = user.notes.filter((element) => element.id !== id);
   user.notes = notes;
   res.status(204).json();
 });
